@@ -288,7 +288,7 @@ const initBookingSubscribers = () => {
         eventData
       )}`
     );
-    const { bookingId, reservationId, token } = eventData;
+    const { bookingId, reservationId, token, performanceId } = eventData;
     try {
       // ✨ Payment 서비스에 결제 의향 취소 요청 ✨
       // 사용자가 나중에 결제하지 못하도록 Intent 상태를 CANCELLED로 변경
@@ -302,6 +302,18 @@ const initBookingSubscribers = () => {
       logger.info(
         `[BookingSubscriber] Booking ${bookingId} status updated to CANCELLED.`
       );
+
+      // 3. Performance 서비스에 예약 취소 요청 (좌석 반환)
+      if (reservationId && performanceId) {
+        await performanceApis.cancelReservation(
+          performanceId,
+          reservationId,
+          token
+        );
+        logger.info(
+          `[BookingSubscriber] Successfully cancelled reservation ${reservationId} for booking ${bookingId}`
+        );
+      }
     } catch (error) {
       logger.error(
         `[BookingSubscriber] Failed to update booking ${bookingId} to CANCELLED: ${error.message}`

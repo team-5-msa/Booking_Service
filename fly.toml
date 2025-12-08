@@ -9,7 +9,9 @@ primary_region = 'nrt'
 [build]
 
 [env]
-NODE_ENV = "production"
+  PORT = "3000"
+  NODE_ENV = "production"
+  PAYMENT_API_BASE_URL = "https://msa-payments.fly.dev"
 
 [http_service]
   internal_port = 3001
