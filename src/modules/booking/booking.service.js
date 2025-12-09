@@ -41,13 +41,7 @@ const createBooking = async (
     );
 
     // 0. 유효한 공연인지 검사
-    const performance = await performanceApi.getPerformanceById(
-      performanceId,
-      token
-    );
-    if (performance.status !== "ACTIVE") {
-      throw new BadRequestError("Invalid or inactive performance.");
-    }
+    await performanceApi.getPerformanceById(performanceId, token);
 
     // 1. 기존 예매 수량 확인
     const existingTickets = await bookingRepository.getActiveTicketCount(
