@@ -9,6 +9,7 @@ const {
 } = require("@utils/errorHandler");
 const logger = require("@utils/logger");
 const eventBus = require("@utils/eventBus");
+const performanceApi = require("@modules/performance/performance.api");
 
 // ✨ 예매 한도 상수
 const MAX_TICKETS_PER_USER = 10;
@@ -21,6 +22,32 @@ const updateBookingStatus = async (bookingId, status) => {
     `[BookingService] Updating status for bookingId: ${bookingId} to ${status}`
   );
   await bookingRepository.updateBookingStatus(bookingId, status);
+};
+
+/**
+ * 공연 유효성 검사
+ */
+const validatePerformance = async (performanceId, token) => {
+  try {
+    const performance = await performanceApi.getPerformanceById(
+      performanceId,
+      token
+    );
+
+    if (!performance || performance.status !== "ACTIVE") {
+      throw new BadRequestError("Invalid or inactive performance.");
+    }
+
+    return performance;
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      throw new NotFoundError("Performance not found.");
+    }
+    logger.error(
+      `[BookingService] validatePerformance failed: ${error.message}`
+    );
+    throw error;
+  }
 };
 
 /**
@@ -38,6 +65,9 @@ const createBooking = async (
     logger.info(
       `[createBooking] Start creating booking for userId: ${userId}, performanceId: ${performanceId}, quantity: ${quantity}, paymentMethod: ${paymentMethod}`
     );
+
+    // 0. 유효한 공연인지 검사
+    validatePerformance(performanceId, token);
 
     // 1. 기존 예매 수량 확인
     const existingTickets = await bookingRepository.getActiveTicketCount(
@@ -209,4 +239,5 @@ module.exports = {
   cancelBooking,
   handlePaymentWebhook,
   handleBookingExpiration,
+  validatePerformance,
 };
