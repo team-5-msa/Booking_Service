@@ -167,7 +167,9 @@ const initBookingSubscribers = () => {
         eventData
       )}`
     );
-    const { performanceId, reservationId, token } = eventData;
+    const { bookingId, performanceId, reservationId, token } = eventData;
+
+    // 1. Performance 서비스 확정 (실패해도 진행 - 보상 트랜잭션 개념)
     try {
       await performanceApis.confirmReservation(
         performanceId,
@@ -178,8 +180,21 @@ const initBookingSubscribers = () => {
         `[BookingSubscriber] Successfully confirmed reservation ${reservationId}`
       );
     } catch (error) {
+      // 이미 결제는 성공했으므로, Performance 쪽 오류가 나도 로컬 상태는 PAID로 변경해야 함
+      logger.warn(
+        `[BookingSubscriber] Failed to confirm reservation ${reservationId} in Performance Service: ${error.message}. Proceeding to update local status.`
+      );
+    }
+
+    // 2. 로컬 Booking 상태 업데이트
+    try {
+      await bookingRepository.updateBookingStatus(bookingId, "PAID");
+      logger.info(
+        `[BookingSubscriber] Booking ${bookingId} status updated to PAID.`
+      );
+    } catch (error) {
       logger.error(
-        `[BookingSubscriber] Failed to confirm reservation ${reservationId}: ${error.message}`
+        `[BookingSubscriber] Failed to update booking ${bookingId} to PAID: ${error.message}`
       );
     }
   });
@@ -256,14 +271,20 @@ const initBookingSubscribers = () => {
 
       // 1. Performance 서비스에 예약 취소 요청 (좌석 반환)
       if (booking.reservationId) {
-        await performanceApis.refundReservation(
-          booking.performanceId,
-          booking.reservationId,
-          token
-        );
-        logger.info(
-          `[BookingSubscriber] Successfully returned seats for reservation ${booking.reservationId}`
-        );
+        try {
+          await performanceApis.refundReservation(
+            booking.performanceId,
+            booking.reservationId,
+            token
+          );
+          logger.info(
+            `[BookingSubscriber] Successfully returned seats for reservation ${booking.reservationId}`
+          );
+        } catch (perfError) {
+          logger.warn(
+            `[BookingSubscriber] Performance Service Error: Failed to return seats for reservation ${booking.reservationId}. Proceeding with refund status update anyway. (Error: ${perfError.message})`
+          );
+        }
       }
 
       // 2. Booking 상태 업데이트 (REFUNDED)
@@ -321,25 +342,7 @@ const initBookingSubscribers = () => {
     }
   });
 
-  // 9. 결제 성공 확정 이벤트 구독
-  eventBus.subscribe("PAYMENT_SUCCESS_CONFIRMED", async (eventData) => {
-    logger.info(
-      `[BookingSubscriber] Event received: PAYMENT_SUCCESS_CONFIRMED ${JSON.stringify(
-        eventData
-      )}`
-    );
-    const { bookingId } = eventData;
-    try {
-      await bookingRepository.updateBookingStatus(bookingId, "PAID");
-      logger.info(
-        `[BookingSubscriber] Booking ${bookingId} status updated to PAID.`
-      );
-    } catch (error) {
-      logger.error(
-        `[BookingSubscriber] Failed to update booking ${bookingId} to PAID: ${error.message}`
-      );
-    }
-  });
+  // 9. 결제 성공 확정 이벤트 구독 (삭제됨 - 5번으로 통합)
 
   // 10. 결제 웹훅 수신 이벤트 구독
   eventBus.subscribe("PAYMENT_WEBHOOK_RECEIVED", async (eventData) => {
@@ -378,21 +381,12 @@ const initBookingSubscribers = () => {
         `[BookingSubscriber] Booking ${bookingId} confirmed as PAID.`
       );
     } else if (status === "FAILURE") {
-      if (booking.status === "FAILED") {
-        logger.info(
-          `[BookingSubscriber] Booking ${bookingId} is already FAILED. Skipping.`
-        );
-        return;
-      }
-      await bookingRepository.updateBookingStatus(bookingId, "FAILED");
-      if (booking.reservationId) {
-        eventBus.publish("PAYMENT_FAILURE_CONFIRMED", {
-          performanceId: Number(booking.performanceId),
-          reservationId: Number(booking.reservationId),
-          token: String(token),
-        });
-      }
-      logger.info(`[BookingSubscriber] Booking ${bookingId} marked as FAILED.`);
+      // 사용자의 요청에 따라 결제 실패 시 바로 취소하지 않고 재시도 기회를 부여함.
+      // 상태를 FAILED로 변경하지 않고, 좌석도 취소하지 않음.
+      // 10분 후 만료 로직(handleBookingExpiration)에 의해 처리되도록 함.
+      logger.warn(
+        `[BookingSubscriber] Payment failed for booking ${bookingId}. Status is ${booking.status}. NOT cancelling reservation to allow retry.`
+      );
     } else if (status === "REFUNDED") {
       if (booking.status === "REFUNDED") {
         logger.info(

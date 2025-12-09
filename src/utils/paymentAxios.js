@@ -6,7 +6,7 @@ const baseURL =
     : "http://localhost:3002"; // 로컬 개발 환경 URL
 
 const paymentAxiosInstance = axios.create({
-  baseURL: "https://msa-payments.fly.dev", // local과 자동으로 맞바꿀수 있는 기술력이 생기면 수정하기 꼭
+  baseURL: "http://localhost:3002", // local과 자동으로 맞바꿀수 있는 기술력이 생기면 수정하기 꼭
   timeout: 10000, // 요청 제한 시간 (밀리초)
   headers: {
     "Content-Type": "application/json", // 요청 데이터의 타입을 JSON으로 설정

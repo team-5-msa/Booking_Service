@@ -116,7 +116,7 @@ const cancelBooking = async (userId, bookingId, token) => {
       token: String(token),
     });
 
-    return { message: "Booking cancellation process initiated." };
+    return { message: "Booking cancellation process completed." };
   }
 
   if (booking.status === "PAID") {
@@ -132,7 +132,7 @@ const cancelBooking = async (userId, bookingId, token) => {
     });
 
     return {
-      message: "Refund process initiated.",
+      message: "Refund process completed.",
     };
   }
 

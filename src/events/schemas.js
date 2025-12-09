@@ -44,6 +44,10 @@ const eventSchemas = {
     userId: Joi.string().required(),
     token: Joi.string().required(),
   }),
+  REFUND_COMPLETED: Joi.object({
+    bookingId: Joi.string().required(),
+    token: Joi.string().required(),
+  }),
   PAYMENT_WEBHOOK_RECEIVED: Joi.object({
     bookingId: Joi.string().required(),
     status: Joi.string().required(),

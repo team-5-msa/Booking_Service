@@ -62,14 +62,32 @@ const reserveTickets = async (performanceId, quantity, token) => {
  */
 const confirmReservation = async (performanceId, reservationId, token) => {
   try {
-    const config = token ? { headers: { Authorization: token } } : {};
+    const headers = {
+      "Content-Type": null, // Body가 없으므로 Content-Type 제거
+    };
+    if (token) {
+      headers.Authorization = token.startsWith("Bearer ")
+        ? token
+        : `Bearer ${token}`;
+    }
+
     const response = await performanceClient.patch(
       `/reservations/${performanceId}/${reservationId}/confirm`,
-      {}, // data (empty)
-      config
+      undefined, // data 없음
+      { headers }
+    );
+    logger.info(
+      `[PerformanceService] confirmReservation succeeded for reservationId: ${reservationId}`
     );
     return response;
   } catch (error) {
+    if (error.response) {
+      logger.error(
+        `[PerformanceService] confirmReservation failed: ${
+          error.response.status
+        } - ${JSON.stringify(error.response.data)}`
+      );
+    }
     logger.error(
       `[PerformanceService] confirmReservation failed: ${error.message}`
     );
@@ -83,14 +101,32 @@ const confirmReservation = async (performanceId, reservationId, token) => {
  */
 const cancelReservation = async (performanceId, reservationId, token) => {
   try {
-    const config = token ? { headers: { Authorization: token } } : {};
+    const headers = {
+      "Content-Type": null, // Body가 없으므로 Content-Type 제거
+    };
+    if (token) {
+      headers.Authorization = token.startsWith("Bearer ")
+        ? token
+        : `Bearer ${token}`;
+    }
+
     const response = await performanceClient.patch(
       `/reservations/${performanceId}/${reservationId}/cancel`,
-      {},
-      config
+      undefined, // data 없음
+      { headers }
+    );
+    logger.info(
+      `[PerformanceService] cancelReservation succeeded for reservationId: ${reservationId}`
     );
     return response;
   } catch (error) {
+    if (error.response) {
+      logger.error(
+        `[PerformanceService] cancelReservation failed: ${
+          error.response.status
+        } - ${JSON.stringify(error.response.data)}`
+      );
+    }
     logger.error(
       `[PerformanceService] cancelReservation failed: ${error.message}`
     );
@@ -105,14 +141,32 @@ const cancelReservation = async (performanceId, reservationId, token) => {
  */
 const refundReservation = async (performanceId, reservationId, token) => {
   try {
-    const config = token ? { headers: { Authorization: token } } : {};
+    const headers = {
+      "Content-Type": null, // Body가 없으므로 Content-Type 제거
+    };
+    if (token) {
+      headers.Authorization = token.startsWith("Bearer ")
+        ? token
+        : `Bearer ${token}`;
+    }
+
     const response = await performanceClient.patch(
       `/reservations/${performanceId}/${reservationId}/refund`,
-      {},
-      config
+      undefined, // data 없음
+      { headers }
+    );
+    logger.info(
+      `[PerformanceService] refundReservation succeeded for reservationId: ${reservationId}`
     );
     return response;
   } catch (error) {
+    if (error.response) {
+      logger.error(
+        `[PerformanceService] refundReservation failed: ${
+          error.response.status
+        } - ${JSON.stringify(error.response.data)}`
+      );
+    }
     logger.error(
       `[PerformanceService] refundReservation failed: ${error.message}`
     );
@@ -128,11 +182,6 @@ const seedPerformance = (id) => {
     `[PerformanceService] seedPerformance called for ${id} (No-op in real service)`
   );
 };
-
-// 기존 인터페이스와의 호환성을 위해 cancelTickets를 래핑 (reservationId가 필요함)
-// 주의: 기존 booking.service.js에서는 cancelTickets(performanceId, quantity)로 호출하고 있음.
-// 하지만 새로운 API는 reservationId가 필수임.
-// 따라서 booking.service.js를 수정하여 reservationId를 전달하도록 해야 함.
 
 module.exports = {
   getPerformanceById,
