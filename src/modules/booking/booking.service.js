@@ -25,32 +25,6 @@ const updateBookingStatus = async (bookingId, status) => {
 };
 
 /**
- * 공연 유효성 검사
- */
-const validatePerformance = async (performanceId, token) => {
-  try {
-    const performance = await performanceApi.getPerformanceById(
-      performanceId,
-      token
-    );
-
-    if (!performance || performance.status !== "ACTIVE") {
-      throw new BadRequestError("Invalid or inactive performance.");
-    }
-
-    return performance;
-  } catch (error) {
-    if (error instanceof NotFoundError) {
-      throw new NotFoundError("Performance not found.");
-    }
-    logger.error(
-      `[BookingService] validatePerformance failed: ${error.message}`
-    );
-    throw error;
-  }
-};
-
-/**
  * 1. 예매 생성 및 결제 의향 생성
  */
 const createBooking = async (
@@ -67,7 +41,13 @@ const createBooking = async (
     );
 
     // 0. 유효한 공연인지 검사
-    validatePerformance(performanceId, token);
+    const performance = await performanceApi.getPerformanceById(
+      performanceId,
+      token
+    );
+    if (performance.status !== "ACTIVE") {
+      throw new BadRequestError("Invalid or inactive performance.");
+    }
 
     // 1. 기존 예매 수량 확인
     const existingTickets = await bookingRepository.getActiveTicketCount(
@@ -240,4 +220,11 @@ module.exports = {
   handlePaymentWebhook,
   handleBookingExpiration,
   validatePerformance,
+};
+module.exports = {
+  createBooking,
+  getMyBookings,
+  cancelBooking,
+  handlePaymentWebhook,
+  handleBookingExpiration,
 };

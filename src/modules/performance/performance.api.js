@@ -16,7 +16,10 @@ const getPerformanceById = async (performanceId, token) => {
     return response;
   } catch (error) {
     if (error.response && error.response.status === 404) {
-      throw new NotFoundError(`Performance ${performanceId} not found`);
+      const message =
+        error.response.data?.message ||
+        `Performance ${performanceId} not found`;
+      throw new NotFoundError(message);
     }
     logger.error(
       `[PerformanceService] getPerformanceById failed: ${error.message}`
