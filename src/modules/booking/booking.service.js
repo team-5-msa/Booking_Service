@@ -219,12 +219,4 @@ module.exports = {
   cancelBooking,
   handlePaymentWebhook,
   handleBookingExpiration,
-  validatePerformance,
-};
-module.exports = {
-  createBooking,
-  getMyBookings,
-  cancelBooking,
-  handlePaymentWebhook,
-  handleBookingExpiration,
 };
